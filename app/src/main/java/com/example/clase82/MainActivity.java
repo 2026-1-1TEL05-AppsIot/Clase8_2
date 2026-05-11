@@ -34,23 +34,25 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        usuarioRepository= RetrofitClient.getInstance("http://10.0.2.2:3000/");
     }
 
     public void guardarUsuario(View view) {
 
-        usuarioRepository= RetrofitClient.getInstance("http://10.0.2.2:3000/");
+        String nombre   = binding.editTextNombre.getText().toString().trim();
+        String apellido = binding.editTextApellido.getText().toString().trim();
+        String dni      = binding.editTextDni.getText().toString().trim();
+        String correo   = binding.editTextCorreo.getText().toString().trim();
+        String edad     = binding.editTextEdad.getText().toString().trim();
 
-        usuarioRepository.guardarUser(binding.editTextNombre.getText().toString(),
-                        binding.editTextApellido.getText().toString(),
-                        binding.editTextDni.getText().toString(),
-                        binding.editTextCorreo.getText().toString(),
-                        binding.editTextEdad.getText().toString())
+        usuarioRepository.guardarUser(nombre, apellido, dni, correo, edad)
                 .enqueue(new Callback<UsuarioResponse>() {
                     @Override
                     public void onResponse(Call<UsuarioResponse> call, Response<UsuarioResponse> response) {
                         UsuarioResponse uResponse = response.body();
-                        String toastText = "id: " + uResponse.getIdInsertado();
+                        String toastText = "Usuario guardado con id: " + uResponse.getIdInsertado();
                         Toast.makeText(MainActivity.this, toastText, Toast.LENGTH_SHORT).show();
+                        limpiarFormulario();
                     }
 
                     @Override
@@ -61,13 +63,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void buscarxNombreWebService(View view) {
-        usuarioRepository = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:3000")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(UsuarioRepository.class);
 
-        String buscar = binding.editTextNombre.getText().toString();
+        String buscar = binding.editTextNombre.getText().toString().trim();
         if (buscar.isEmpty()) {
             buscar = "";
         }
@@ -77,14 +74,27 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call<List<User>> call, Response<List<User>> response) {
                 String resultado = "";
                 if (response.isSuccessful()) {
+
                     List<User> users = response.body();
-                       for(User user: users) {
-                           resultado = "Nombre y Apellido: " + user.getNombre() + " " + user.getApellido() + "\n" + resultado;
-                       }
+
+                    if (users.isEmpty()) {
+                        mostrarResultado("Sin resultados",
+                                "No se encontró ningún usuario con ese nombre.");
+                        return;
+                    }
+
+                    for(User user: users) {
+                        resultado = "Nombre y Apellido: " + user.getNombre() + " " + user.getApellido() + "\n" +
+                                   "DNI: " + user.getDni() + "\n" +
+                                   "Correo: " + user.getEmail() + "\n" +
+                                   "Edad: " + user.getEdad() + "\n" +
+                                   "________________________________" + "\n" +
+                                   resultado;
+                    }
                 } else {
                     Log.d(TAG, "response unsuccessful");
                 }
-                resultadoMostrar(resultado);
+                mostrarResultado("Resultados de búsqueda",resultado);
             }
 
             @Override
@@ -96,12 +106,20 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void resultadoMostrar(String resultado) {
+    public void mostrarResultado(String titulo, String mensaje) {
         MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this);
-        dialogBuilder.setTitle("Buscar");
-        dialogBuilder.setMessage(resultado);
+        dialogBuilder.setTitle(titulo);
+        dialogBuilder.setMessage(mensaje);
         dialogBuilder.setPositiveButton(R.string.ok, (dialogInterface, i) -> Log.d("msg-test","btn positivo"));
         dialogBuilder.show();
+    }
+
+    private void limpiarFormulario() {
+        binding.editTextNombre.setText("");
+        binding.editTextApellido.setText("");
+        binding.editTextDni.setText("");
+        binding.editTextCorreo.setText("");
+        binding.editTextEdad.setText("");
     }
 
 }
